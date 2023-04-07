@@ -1,103 +1,99 @@
 const express = require('express');
 const fs = require('fs');
 const app = express();
-const port = 3000;
+const PORT = 3000;
 
 app.use(express.json());
 
-const posts = JSON.parse(fs.readFileSync(`${__dirname}/data.json`));
+const tasks = JSON.parse(fs.readFileSync(`./data.json`, 'utf8'));
+console.log(tasks);
 
-app.get('/user', (req, res) => {
+const checkID = () => {};
+
+app.get('/', (req, res) => {
   res.status(200).json({
     status: 'success',
-    result: posts.length,
-    posts,
+    results: tasks.length,
+    tasks,
   });
 });
 
-app.get('/user/:id', (req, res) => {
+app.get('/:id', (req, res) => {
   const id = req.params.id * 1;
-  const post = posts.find((el) => el.id === id);
 
-  if (id > posts.length || id === 0) {
+  if (id > tasks.length || id === 0) {
     return res.status(404).json({
-      status: '404 Error',
-      message: 'User not found',
+      status: 'error',
+      message: 'please enter a valid id',
     });
   }
 
-  res.status(200).json({
-    status: 'Success',
-    data: {
-      post,
-    },
-  });
+  for (let i = 0; i < tasks.length; i++) {
+    if (tasks[i].id === id) {
+      return res.status(200).json({
+        status: 'success',
+        task: tasks[i],
+      });
+    }
+  }
 });
 
-app.post('/add/user', (req, res) => {
-  const newId = posts[posts.length - 1].id + 1;
-  const newPost = Object.assign({ id: newId }, req.body);
-  console.log(req.body);
-
-  posts.push(newPost);
-
-  fs.writeFile(`./data.json`, JSON.stringify(posts), (err) => {
+app.post('/add/todo', (req, res) => {
+  const newTask = {
+    id: tasks.length + 1,
+    task: req.body.task,
+  };
+  tasks.push(newTask);
+  fs.writeFile(`./data.json`, JSON.stringify(tasks), (err) => {
     res.status(201).json({
-      status: 'Success',
-      data: {
-        post: newPost,
-      },
+      status: 'Task added successfully',
+      task: newTask,
     });
   });
 });
 
-app.put('/edit/user/:id', (req, res) => {
+app.put('/edit/:id', (req, res) => {
   const id = req.params.id * 1;
-  const post = posts.find((el) => el.id === id);
+  const editTask = req.body;
 
-  if (id > posts.length || id === 0) {
+  if (id > tasks.length || id === 0) {
     return res.status(404).json({
-      status: '404 Error',
-      message: 'User not found',
+      status: 'error',
+      message: 'please enter a valid id',
     });
   }
-
-  const index = posts.indexOf(post);
-  Object.assign(post, req.body);
-  posts[index] = post;
-
-  fs.writeFile(`${__dirname}/data.json`, JSON.stringify(posts), (err) => {
-    res.status(200).json({
-      status: 'Post Update Success',
-      data: {
-        posts: post,
-      },
+  for (let i = 0; i < tasks.length; i++) {
+    if (tasks[i].id === id) {
+      Object.assign(tasks[i], editTask);
+    }
+  }
+  fs.writeFile(`./data.json`, JSON.stringify(tasks), (req, err) => {
+    res.status(201).json({
+      status: 'Task edited successfully',
+      editTask,
     });
   });
 });
 
-app.delete('/delete/user/:id', (req, res) => {
+app.delete('/delete/:id', (req, res) => {
   const id = req.params.id * 1;
-  const post = posts.find((el) => el.id === id);
-
-  if (id > posts.length || id === 0) {
+  if (id > tasks.length || id === 0) {
     return res.status(404).json({
-      status: '404 Error',
-      message: 'User not found',
+      status: 'error',
+      message: 'please enter a valid id',
     });
   }
+  const deletedTask = tasks.filter((task) => task.id === id);
+  const remainingTasks = tasks.filter((task) => task.id !== id);
 
-  const index = posts.indexOf(post);
-  posts.splice(index, 1);
-
-  fs.writeFile(`${__dirname}/data.json`, JSON.stringify(posts), (err) => {
-    res.status(200).json({
-      status: 'Post deleted',
-      data: null,
+  fs.writeFile(`./data.json`, JSON.stringify(remainingTasks), (req, err) => {
+    res.status(201).json({
+      status: 'Task deleted successfully',
+      deletedTask,
     });
   });
 });
 
-app.listen(port, () => {
-  console.log(`app listening on port ${port}..!!`);
+app.listen(PORT, () => {
+  console.log(`App listening on port ${PORT}...!!!`);
 });
